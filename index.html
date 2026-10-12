@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Feedback per Gaia</title>
+<meta name="description" content="12 situazioni, 4 minuti, anonimo: keep, start, stop.">
+<meta property="og:title" content="Mi dai un feedback? 4 minuti, anonimo">
+<meta property="og:description" content="12 situazioni in tre round: cosa continuare, cosa iniziare, cosa smettere di fare.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Unbounded:wght@500;700&display=swap">
+<style>
+/* Layout: one centred column, one decision per screen; the round colour (keep blue, start green, stop red) carries the game structure */
+:root {
+  color-scheme: light;
+  --paper: #F3F5F8;
+  --card: #FFFFFF;
+  --ink: #16202C;
+  --muted: #586474;
+  --line: #D6DCE4;
+  --keep: #2356C4;
+  --start: #17804A;
+  --stop: #C2372B;
+  --keep-soft: #E5ECFA;
+  --start-soft: #E2F2E9;
+  --stop-soft: #FAE6E3;
+  --on-accent: #FFFFFF;
+  --display: "Unbounded", "Arial Rounded MT Bold", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --accent: var(--ink);
+  --accent-soft: var(--line);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #0F141A;
+    --card: #18202A;
+    --ink: #E8EDF3;
+    --muted: #9BA7B6;
+    --line: #2B3542;
+    --keep: #86A6F2;
+    --start: #62C78F;
+    --stop: #F2806F;
+    --keep-soft: #1A2742;
+    --start-soft: #15301F;
+    --stop-soft: #3B1D19;
+    --on-accent: #0F141A;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #0F141A;
+  --card: #18202A;
+  --ink: #E8EDF3;
+  --muted: #9BA7B6;
+  --line: #2B3542;
+  --keep: #86A6F2;
+  --start: #62C78F;
+  --stop: #F2806F;
+  --keep-soft: #1A2742;
+  --start-soft: #15301F;
+  --stop-soft: #3B1D19;
+  --on-accent: #0F141A;
+}
+[data-round="keep"] { --accent: var(--keep); --accent-soft: var(--keep-soft); }
+[data-round="start"] { --accent: var(--start); --accent-soft: var(--start-soft); }
+[data-round="stop"] { --accent: var(--stop); --accent-soft: var(--stop-soft); }
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 17px/1.5 var(--body);
+  padding: env(safe-area-inset-top, 0px) 16px env(safe-area-inset-bottom, 0px);
+}
+[hidden] { display: none !important; }
+.wrap { max-width: 560px; margin: 0 auto; padding-block: 20px 40px; display: flex; flex-direction: column; gap: 20px; min-height: 100dvh; }
+#app { display: flex; flex-direction: column; gap: 20px; }
+h1, h2 { font-family: var(--display); font-weight: 700; line-height: 1.15; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h1 { font-size: clamp(30px, 8vw, 42px); }
+h2 { font-size: clamp(21px, 5.6vw, 26px); }
+h1:focus, h2:focus { outline: none; }
+p { margin: 0; }
+.lead { font-size: 18px; }
+.muted { color: var(--muted); font-size: 15px; }
+.label { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+
+.testbar { background: #FFF3C4; color: #4A3B00; border-radius: 10px; padding: 8px 12px; font-size: 14px; }
+
+/* top bar: back + progress */
+.top { display: flex; align-items: center; gap: 12px; min-height: 36px; }
+.back { background: none; border: 0; color: var(--muted); font: inherit; font-size: 15px; padding: 6px 4px; cursor: pointer; border-radius: 8px; }
+.back:hover { color: var(--ink); }
+.pips { display: flex; gap: 10px; flex: 1; justify-content: flex-end; }
+.pipgroup { display: flex; gap: 3px; }
+.pip { width: 14px; height: 6px; border-radius: 3px; background: var(--line); }
+.pip.done { background: var(--c); }
+.pip.now { box-shadow: 0 0 0 2px var(--c); background: var(--card); }
+
+/* intro */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1.5px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 15px; font-weight: 700; background: var(--card); }
+.rule { background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 6px; }
+.rounds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.roundtile { border-radius: 14px; padding: 12px; background: var(--accent-soft); display: flex; flex-direction: column; gap: 2px; }
+.roundtile b { font-family: var(--display); font-size: 16px; color: var(--accent); }
+.roundtile span { font-size: 14px; color: var(--ink); }
+
+/* round intro */
+.roundhead { display: flex; flex-direction: column; gap: 12px; padding-top: 8vh; }
+.bignum { font-family: var(--display); font-weight: 700; font-size: 64px; line-height: 1; color: var(--accent); }
+.bignum small { font-size: 24px; color: var(--muted); }
+
+/* question */
+.q { display: flex; flex-direction: column; gap: 14px; }
+.opts { display: flex; flex-direction: column; gap: 10px; }
+.opt {
+  display: flex; gap: 12px; align-items: flex-start; text-align: left; width: 100%;
+  background: var(--card); color: var(--ink); border: 1.5px solid var(--line); border-radius: 14px;
+  padding: 14px 14px; font: inherit; font-size: 16.5px; line-height: 1.4; cursor: pointer;
+  transition: border-color .15s, background-color .15s, transform .1s;
+}
+.opt:hover { border-color: var(--accent); }
+.opt:active { transform: scale(0.99); }
+.opt .n {
+  flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+  font-family: var(--display); font-size: 13px; font-weight: 700; color: var(--accent); background: var(--accent-soft);
+}
+.opt.sel { border-color: var(--accent); background: var(--accent-soft); }
+.opt.sel .n { background: var(--accent); color: var(--on-accent); }
+.skip { align-self: flex-start; background: none; border: 0; color: var(--muted); font: inherit; font-size: 15px; text-decoration: underline; text-underline-offset: 3px; padding: 6px 0; cursor: pointer; }
+.skip.sel { color: var(--ink); font-weight: 700; }
+
+/* buttons */
+.btn {
+  align-self: stretch; border: 0; border-radius: 14px; padding: 16px 20px; cursor: pointer;
+  background: var(--accent); color: var(--on-accent); font-family: var(--display); font-weight: 500; font-size: 17px;
+}
+.btn.ink { background: var(--ink); color: var(--paper); }
+.btn:disabled { opacity: .6; cursor: progress; }
+.linkbtn { background: none; border: 0; color: var(--muted); font: inherit; font-size: 14px; text-decoration: underline; cursor: pointer; padding: 4px 0; align-self: flex-start; }
+.spacer { flex: 1; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* review */
+.tally { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tally div { background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 2px; }
+.tally b { font-family: var(--display); font-size: 22px; font-variant-numeric: tabular-nums; }
+.error { color: var(--stop); font-weight: 700; }
+
+/* reveal */
+.reveal { background: var(--card); border: 1.5px solid var(--line); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+.stylename { font-family: var(--display); font-weight: 700; font-size: 26px; line-height: 1.15; }
+.matrixwrap { display: grid; grid-template-columns: auto 1fr auto; grid-template-rows: auto 1fr auto; gap: 6px; max-width: 340px; width: 100%; align-self: center; }
+.ax { font-size: 12px; color: var(--muted); }
+.ax.top { grid-column: 2; grid-row: 1; text-align: center; }
+.ax.bottom { grid-column: 2; grid-row: 3; text-align: center; }
+.ax.left { grid-column: 1; grid-row: 2; writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; }
+.ax.right { grid-column: 3; grid-row: 2; writing-mode: vertical-rl; text-align: center; }
+.matrix { grid-column: 2; grid-row: 2; position: relative; aspect-ratio: 1; display: grid; grid-template: 1fr 1fr / 1fr 1fr; gap: 3px; }
+.cell { border-radius: 10px; background: var(--paper); display: grid; place-items: center; text-align: center; padding: 6px; font-size: 13px; line-height: 1.2; color: var(--muted); }
+.cell.on { background: var(--keep-soft); color: var(--ink); font-weight: 700; }
+.matrix svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 14px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+.mlbar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--line); }
+.mlbar i { display: block; height: 100%; }
+.mlrow { display: flex; justify-content: space-between; font-size: 14px; font-variant-numeric: tabular-nums; }
+blockquote { margin: 0; font-family: var(--display); font-weight: 500; font-size: 19px; line-height: 1.35; }
+blockquote + p { margin-top: 6px; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="testbar" id="testbar" hidden>Modalità prova: il modulo non è ancora collegato, le risposte non vengono inviate.</div>
+  <main id="app"></main>
+  <noscript><p>Per giocare serve JavaScript attivo nel browser.</p></noscript>
+</div>
+<script>
+"use strict";
+/* Google Form that receives the answers: paste the two values from the form's pre-filled link. */
+const FORM_ACTION = ""; /* https://docs.google.com/forms/d/e/<FORM_ID>/formResponse */
+const FORM_ENTRY = "";  /* entry.<NUMBER> */
+const STORE = "gaia360_v1";
+
+const ROUNDS = {
+  keep:  { n: 1, name: "Keep",  title: "Cosa continuare a fare", lead: "Quattro situazioni. In ognuna scegli il comportamento di Gaia che hai visto e che diresti a Gaia di non perdere." },
+  start: { n: 2, name: "Start", title: "Cosa iniziare a fare",   lead: "Quattro situazioni. Scegli che cosa farebbe la differenza se Gaia cominciasse a farlo di più." },
+  stop:  { n: 3, name: "Stop",  title: "Cosa smettere di fare",  lead: "Quattro gruppi di abitudini. Scegli quella che hai visto più spesso; se non ne hai vista nessuna, premi «Non saprei»." }
+};
+
+/* scores from questions.json: m managing, l leading, u urgency (results), g competence gap (directive), gm growth mindset */
+function sc(m, l, u, g, gm) { return { m: m, l: l, u: u, g: g, gm: gm }; }
+const QUESTIONS = [
+  { id: "K1", round: "keep", tag: "Sotto pressione", prompt: "Scadenza vicina o imprevisto serio: che cosa fa Gaia che funziona?", options: [
+    { k: "A", t: "Si concentra sull'obiettivo, fissa le priorità e coordina il lavoro con precisione.", s: sc(2, 0, 2, 1, 0) },
+    { k: "B", t: "Trasmette energia e una meta chiara, e tiene tutti allineati.", s: sc(0, 2, 2, -1, 1) },
+    { k: "C", t: "Coinvolge gli altri nelle decisioni e sostiene chi è in difficoltà.", s: sc(0, 2, -1, -1, 1) },
+    { k: "D", t: "Fa da scudo al gruppo e si prende la responsabilità delle scelte più difficili.", s: sc(1, 1, -1, 1, 0) } ] },
+  { id: "K2", round: "keep", tag: "Affidare un compito", prompt: "Quando affida un compito a qualcuno, in un progetto o in un gruppo di lavoro, come lo segue?", options: [
+    { k: "A", t: "Dà indicazioni chiare, fissa gli standard e controlla a intervalli regolari come procede.", s: sc(2, 0, 0, 1, 0) },
+    { k: "B", t: "Indica la direzione e lascia libertà di sperimentare; se qualcosa va storto, lo tratta come un'occasione per imparare.", s: sc(0, 2, -1, -1, 2) },
+    { k: "C", t: "Resta accanto alla persona, fa da guida e dà riscontri continui lungo il percorso.", s: sc(0, 2, 0, -1, 1) },
+    { k: "D", t: "Tiene d'occhio i passaggi critici perché regole e procedure siano rispettate.", s: sc(2, 0, 1, 1, 0) } ] },
+  { id: "K3", round: "keep", tag: "Idee diverse e critiche", prompt: "Quando qualcuno propone un'idea diversa o critica il suo lavoro, che cosa fa Gaia?", options: [
+    { k: "A", t: "Ascolta con curiosità e accetta di rivedere le proprie decisioni.", s: sc(0, 2, -1, -1, 2) },
+    { k: "B", t: "Valuta la proposta sui dati e sui vincoli (tempi, costi) prima di cambiare.", s: sc(2, 0, 0, 1, 0) },
+    { k: "C", t: "Difende con determinazione la linea scelta, se pensa che cambiare rotta aumenti i rischi.", s: sc(1, 0, 1, 2, -1) },
+    { k: "D", t: "Integra le idee migliori nel piano e riconosce il contributo di chi le ha proposte.", s: sc(1, 2, 0, -1, 1) } ] },
+  { id: "K4", round: "keep", tag: "Comunicare le priorità", prompt: "Come comunica le priorità del lavoro al gruppo?", options: [
+    { k: "A", t: "Spiega il perché: la direzione e l'impatto del lavoro.", s: sc(0, 2, 1, -1, 1) },
+    { k: "B", t: "Dettaglia compiti, responsabilità, tappe e scadenze.", s: sc(2, 0, 0, 1, 0) },
+    { k: "C", t: "Celebra i primi risultati per tenere alto l'entusiasmo.", s: sc(0, 2, 1, -1, 1) },
+    { k: "D", t: "Si assicura che ognuno sappia esattamente il proprio ruolo, senza sovrapposizioni.", s: sc(2, 0, 0, 1, 0) } ] },
+
+  { id: "S1", round: "start", tag: "Errori e insuccessi", prompt: "Davanti a un errore o a un insuccesso, che cosa dovrebbe iniziare a fare di più?", options: [
+    { k: "A", t: "Trattare l'errore come un'informazione da cui imparare, senza cercare colpevoli.", s: sc(0, 2, 0, -1, 2) },
+    { k: "B", t: "Introdurre controlli più stringenti per intercettare i problemi prima.", s: sc(2, 0, 1, 1, -1) },
+    { k: "C", t: "Intervenire subito in prima persona, con un approccio analitico e deciso.", s: sc(2, 0, 2, 1, 0) },
+    { k: "D", t: "Aprire un confronto di gruppo per capire insieme le cause.", s: sc(1, 2, -1, -1, 2) } ] },
+  { id: "S2", round: "start", tag: "Guidare un cambiamento", prompt: "Per guidare meglio un cambiamento o una novità, che cosa dovrebbe iniziare a fare?", options: [
+    { k: "A", t: "Creare un senso di urgenza positivo, mostrando le opportunità senza generare ansia.", s: sc(0, 2, 2, -1, 1) },
+    { k: "B", t: "Partire da piccoli progetti pilota prima di estendere il cambiamento.", s: sc(1, 1, -1, 1, 1) },
+    { k: "C", t: "Mettere il piano del cambiamento per iscritto, con indicatori misurabili.", s: sc(2, 0, 0, 1, 0) },
+    { k: "D", t: "Riconoscere e ringraziare più spesso le persone per l'impegno.", s: sc(0, 2, -1, -1, 2) } ] },
+  { id: "S3", round: "start", tag: "Far crescere gli altri", prompt: "Su che cosa dovrebbe investire più tempo per far crescere le persone con cui lavora?", options: [
+    { k: "A", t: "Dare e chiedere feedback frequenti, basati su fatti osservati, non solo nelle occasioni ufficiali.", s: sc(1, 2, 0, -1, 2) },
+    { k: "B", t: "Dedicare momenti a tu per tu per aiutare gli altri a mettere a fuoco i propri obiettivi.", s: sc(0, 2, -1, -1, 2) },
+    { k: "C", t: "Chiarire in anticipo, in modo esplicito, che cosa si aspetta da ciascuno.", s: sc(2, 0, 1, 1, 0) },
+    { k: "D", t: "Esprimere più spesso stima e incoraggiamento.", s: sc(0, 2, -1, -1, 1) } ] },
+  { id: "S4", round: "start", tag: "Cambio di passo", prompt: "Quale cambio di passo sarebbe più utile a Gaia nei prossimi sei mesi?", options: [
+    { k: "A", t: "Meno operatività e controllo, più visione e direzione.", s: sc(-1, 3, 1, -1, 2) },
+    { k: "B", t: "Più struttura, metodo e disciplina nell'esecuzione.", s: sc(3, -1, 1, 1, 0) },
+    { k: "C", t: "Uno stile più partecipativo, con più spazio all'ascolto.", s: sc(0, 2, -1, -1, 2) },
+    { k: "D", t: "Un ruolo più carismatico, che allinei tutte le persone coinvolte.", s: sc(0, 2, 2, -1, 1) } ] },
+
+  { id: "ST1", round: "stop", tag: "Giudizi e conclusioni", prompt: "Quale abitudine nel giudicare situazioni e persone dovrebbe abbandonare?", options: [
+    { k: "A", t: "Trarre conclusioni affrettate sulle intenzioni degli altri senza verificare i fatti.", c: "Fatti_vs_Inferenze" },
+    { k: "B", t: "Accentrare le decisioni senza lasciare autonomia agli altri.", c: "Micromanagement" },
+    { k: "C", t: "Evitare di dare feedback critici per timore del conflitto.", c: "Evitamento_Feedback" },
+    { k: "D", t: "Continuare con le procedure di sempre quando il contesto chiede flessibilità.", c: "Inerzia_Organizzativa" } ] },
+  { id: "ST2", round: "stop", tag: "Priorità e riunioni", prompt: "Quale abitudine nell'organizzare il lavoro dovrebbe interrompere?", options: [
+    { k: "A", t: "Trattare tutto come urgente, senza priorità chiare.", c: "Falsa_Urgenza" },
+    { k: "B", t: "Guardare solo errori e scostamenti, trascurando i successi.", c: "Focus_Negativo" },
+    { k: "C", t: "Fare riunioni senza un ordine del giorno chiaro e senza decisioni scritte alla fine.", c: "Riunioni_Inefficaci" },
+    { k: "D", t: "Rimandare le decisioni scomode quando servono.", c: "Indecisione" } ] },
+  { id: "ST3", round: "stop", tag: "Momenti di cambiamento", prompt: "Nei momenti di cambiamento, quale atteggiamento dovrebbe smettere di mostrare?", options: [
+    { k: "A", t: "Mettersi sulla difensiva ed evitare le sfide in cui potrebbe sbagliare.", c: "Fixed_Mindset" },
+    { k: "B", t: "Imporre il cambiamento dall'alto senza coinvolgere le persone.", c: "Top_Down_Coercitivo" },
+    { k: "C", t: "Mollare la presa subito dopo i primi successi, senza consolidarli.", c: "Mancato_Consolidamento" },
+    { k: "D", t: "Trascurare di spiegare il senso e l'impatto del lavoro.", c: "Mancanza_Visione" } ] },
+  { id: "ST4", round: "stop", tag: "Lavorare con gli altri", prompt: "Nel lavoro con gli altri, quale modo di fare dovrebbe eliminare?", options: [
+    { k: "A", t: "Interrompere il lavoro degli altri con richieste improvvise e frammentate.", c: "Frammentazione" },
+    { k: "B", t: "Sovrapporsi agli altri mentre presentano o parlano.", c: "Invasione_Spazio" },
+    { k: "C", t: "Dare per scontato che le aspettative siano chiare, senza mai dirle esplicitamente.", c: "Presunzione_Chiarezza" },
+    { k: "D", t: "Tollerare un lavoro di qualità insufficiente per evitare discussioni difficili.", c: "Bassi_Standard" } ] }
+];
+
+/* Corso's four styles (dispensa 2.7): x = directive vs participative (competence gap), y = results vs relationships (urgency) */
+const STYLES = {
+  chirurgo:   { name: "Il Chirurgo",              line: "Direttivo e orientato al risultato: decide e coordina con coerenza e determinazione." },
+  direttore:  { name: "Il Direttore d'orchestra", line: "Carismatico: diffonde entusiasmo, comunica una visione e orienta gli sforzi di tutti." },
+  coach:      { name: "Il Coach",                 line: "Partecipativo e orientato alle relazioni: coinvolge, ascolta e fa crescere le persone." },
+  comandante: { name: "Il Comandante",            line: "Determinato e protettivo: crea una squadra, la difende e convince gli altri a seguirla." }
+};
+
+const STEPS = ["intro"];
+["keep", "start", "stop"].forEach(function (r) {
+  STEPS.push("r:" + r);
+  QUESTIONS.filter(function (q) { return q.round === r; }).forEach(function (q) { STEPS.push("q:" + q.id); });
+});
+STEPS.push("review");
+
+function byId(id) { return QUESTIONS.find(function (q) { return q.id === id; }); }
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+function rid() { return Math.random().toString(36).slice(2, 8); }
+function load() { try { const v = localStorage.getItem(STORE); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) { /* storage unavailable: the game still works */ } }
+
+function fresh() {
+  const order = {};
+  QUESTIONS.forEach(function (q) { order[q.id] = shuffle(["A", "B", "C", "D"]); });
+  return { step: 0, answers: {}, order: order, rid: rid(), t0: Date.now(), sent: 0, again: false };
+}
+let state = load() || fresh();
+if (!state.order || !state.rid) state = fresh();
+let busy = false;
+let sendError = "";
+
+const app = document.getElementById("app");
+const testMode = !FORM_ACTION || !FORM_ENTRY;
+document.getElementById("testbar").hidden = !testMode;
+
+function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c]; }); }
+
+function pips() {
+  const cur = STEPS[state.step];
+  let html = '<div class="pips" aria-hidden="true">';
+  ["keep", "start", "stop"].forEach(function (r) {
+    html += '<div class="pipgroup" style="--c: var(--' + r + ')">';
+    QUESTIONS.filter(function (q) { return q.round === r; }).forEach(function (q) {
+      const cls = cur === "q:" + q.id ? "pip now" : (state.answers[q.id] ? "pip done" : "pip");
+      html += '<span class="' + cls + '"></span>';
+    });
+    html += "</div>";
+  });
+  return html + "</div>";
+}
+function topbar() {
+  return '<div class="top"><button class="back" id="back" type="button">&larr; Indietro</button>' + pips() + "</div>";
+}
+
+function profile() {
+  /* Keep answers describe today's behaviour; Start answers describe the direction people ask for. */
+  function agg(round) {
+    let m = 0, l = 0, u = 0, g = 0, n = 0;
+    QUESTIONS.filter(function (q) { return q.round === round; }).forEach(function (q) {
+      const k = state.answers[q.id];
+      if (!k || k === "-") return;
+      const s = q.options.find(function (o) { return o.k === k; }).s;
+      m += s.m; l += s.l; u += s.u; g += s.g; n++;
+    });
+    if (!n) return null;
+    const M = Math.max(m, 0), L = Math.max(l, 0);
+    const x = g / n, y = u / n;
+    return { n: n, managing: M + L ? Math.round(100 * M / (M + L)) : 50, x: x, y: y,
+             style: y > 0 ? (x > 0 ? "chirurgo" : "direttore") : (x > 0 ? "comandante" : "coach") };
+  }
+  return { now: agg("keep"), to: agg("start") };
+}
+
+function payload() {
+  const secs = Math.round((Date.now() - state.t0) / 1000);
+  return ["v1", "r=" + state.rid, "s=" + secs].concat(QUESTIONS.map(function (q) { return q.id + "=" + (state.answers[q.id] || "-"); })).join(";");
+}
+
+function render() {
+  const step = STEPS[state.step];
+  if (state.sent && !state.again) return renderThanks(true);
+  if (step === "intro") return renderIntro();
+  if (step === "review") return renderReview();
+  if (step.indexOf("r:") === 0) return renderRound(step.slice(2));
+  return renderQuestion(byId(step.slice(2)));
+}
+
+function renderIntro() {
+  app.removeAttribute("data-round");
+  app.innerHTML =
+    '<div class="wrap-in" style="display:flex;flex-direction:column;gap:20px">' +
+    '<p class="label" style="color:var(--muted)">Keep · Start · Stop</p>' +
+    '<h1 tabindex="-1">Mi dai un feedback?</h1>' +
+    '<p class="lead">Sono Gaia. Per il corso di People Management dell\'Executive MBA sto raccogliendo feedback su come lavoro con gli altri, all\'università e al lavoro.</p>' +
+    '<div class="chips"><span class="chip">12 situazioni</span><span class="chip">4 minuti</span><span class="chip">Anonimo</span></div>' +
+    '<div class="rounds">' +
+      '<div class="roundtile" data-round="keep"><b>1 Keep</b><span>cosa continuare</span></div>' +
+      '<div class="roundtile" data-round="start"><b>2 Start</b><span>cosa iniziare</span></div>' +
+      '<div class="roundtile" data-round="stop"><b>3 Stop</b><span>cosa smettere</span></div>' +
+    "</div>" +
+    '<div class="rule"><b>Una sola regola, presa dal corso</b><p>Rispondi pensando a cose che hai visto succedere, non a impressioni. Se una situazione non l\'hai mai vista, premi «Non saprei».</p></div>' +
+    '<button class="btn ink" id="go" type="button">Inizia</button>' +
+    '<p class="muted">Le risposte arrivano senza nome né email. In ogni situazione le quattro scelte sono tutte plausibili: non ci sono risposte giuste.</p>' +
+    "</div>";
+  document.getElementById("go").onclick = function () { state.t0 = Date.now(); go(1); };
+  focusHead();
+}
+
+function renderRound(r) {
+  const R = ROUNDS[r];
+  app.setAttribute("data-round", r);
+  app.innerHTML = topbar() +
+    '<div class="roundhead">' +
+    '<div class="bignum">' + R.n + '<small> / 3</small></div>' +
+    '<p class="label">Round ' + R.n + " · " + R.name + "</p>" +
+    '<h1 tabindex="-1">' + R.title + "</h1>" +
+    '<p class="lead">' + R.lead + "</p>" +
+    "</div>" +
+    '<div style="height:24px"></div>' +
+    '<button class="btn" id="go" type="button">Via</button>';
+  bindBack();
+  document.getElementById("go").onclick = function () { go(state.step + 1); };
+  focusHead();
+}
+
+function renderQuestion(q) {
+  app.setAttribute("data-round", q.round);
+  const chosen = state.answers[q.id];
+  let opts = "";
+  state.order[q.id].forEach(function (k, i) {
+    const o = q.options.find(function (x) { return x.k === k; });
+    opts += '<button class="opt' + (chosen === k ? " sel" : "") + '" type="button" data-k="' + k + '" aria-pressed="' + (chosen === k) + '">' +
+      '<span class="n">' + (i + 1) + "</span><span>" + esc(o.t) + "</span></button>";
+  });
+  const pos = QUESTIONS.filter(function (x) { return x.round === q.round; }).indexOf(q) + 1;
+  app.innerHTML = topbar() +
+    '<div class="q">' +
+    '<p class="label">' + ROUNDS[q.round].name + " " + pos + "/4 · " + esc(q.tag) + "</p>" +
+    '<h2 tabindex="-1">' + esc(q.prompt) + "</h2>" +
+    '<div class="opts">' + opts + "</div>" +
+    '<button class="skip' + (chosen === "-" ? " sel" : "") + '" type="button" data-k="-">Non saprei, salta</button>' +
+    "</div>";
+  bindBack();
+  app.querySelectorAll("[data-k]").forEach(function (b) {
+    b.onclick = function () { pick(q, b.getAttribute("data-k")); };
+  });
+  focusHead();
+}
+
+function pick(q, k) {
+  if (busy) return;
+  busy = true;
+  state.answers[q.id] = k;
+  save();
+  app.querySelectorAll("[data-k]").forEach(function (b) {
+    const on = b.getAttribute("data-k") === k;
+    b.classList.toggle("sel", on);
+    if (b.classList.contains("opt")) b.setAttribute("aria-pressed", String(on));
+  });
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  setTimeout(function () { busy = false; go(state.step + 1); }, reduce ? 0 : 260);
+}
+
+function renderReview() {
+  app.removeAttribute("data-round");
+  let html = topbar() + '<h1 tabindex="-1">Fatto!</h1>';
+  html += '<div class="tally">';
+  ["keep", "start", "stop"].forEach(function (r) {
+    const qs = QUESTIONS.filter(function (q) { return q.round === r; });
+    const ans = qs.filter(function (q) { return state.answers[q.id] && state.answers[q.id] !== "-"; }).length;
+    html += '<div data-round="' + r + '"><span class="label">' + ROUNDS[r].name + "</span><b>" + ans + "/4</b><span class=\"muted\">risposte</span></div>";
+  });
+  html += "</div>";
+  html += '<p class="lead">Se vuoi cambiare qualcosa puoi ancora tornare indietro. Altrimenti invia: le risposte arrivano senza nome né email.</p>';
+  if (sendError) html += '<p class="error" role="alert">' + esc(sendError) + "</p>";
+  html += '<button class="btn ink" id="send" type="button">Invia le risposte</button>';
+  app.innerHTML = html;
+  bindBack();
+  document.getElementById("send").onclick = send;
+  focusHead();
+}
+
+async function send() {
+  const btn = document.getElementById("send");
+  btn.disabled = true; btn.textContent = "Invio…";
+  sendError = "";
+  const data = payload();
+  try {
+    if (testMode) {
+      console.log("[prova] risposta non inviata:", data);
+    } else {
+      const body = new URLSearchParams();
+      body.append(FORM_ENTRY, data);
+      await fetch(FORM_ACTION, { method: "POST", mode: "no-cors", body: body });
+    }
+    state.sent = Date.now(); state.again = false;
+    save();
+    renderThanks(false);
+  } catch (e) {
+    sendError = "Invio non riuscito: controlla la connessione e premi di nuovo «Invia le risposte».";
+    renderReview();
+  }
+}
+
+let arrowDrawn = false;
+function matrix(p) {
+  const R = 2;
+  function px(v) { return Math.min(94, Math.max(6, (v + R) / (2 * R) * 100)); }
+  function py(v) { return Math.min(94, Math.max(6, (R - v) / (2 * R) * 100)); }
+  const now = p.now, to = p.to;
+  const cells = [["direttore", "Direttore d'orchestra"], ["chirurgo", "Chirurgo"], ["coach", "Coach"], ["comandante", "Comandante"]];
+  let html = '<div class="matrixwrap"><span class="ax top">orientato ai risultati</span>' +
+    '<span class="ax left">partecipativo</span><span class="ax right">direttivo</span><div class="matrix">';
+  cells.forEach(function (c) { html += '<div class="cell' + (now && now.style === c[0] ? " on" : "") + '">' + c[1] + "</div>"; });
+  html += '<svg viewBox="0 0 100 100" aria-hidden="true"><defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--start)"/></marker></defs>';
+  arrowDrawn = !!(now && to && Math.hypot(px(to.x) - px(now.x), py(to.y) - py(now.y)) >= 6);
+  if (arrowDrawn) html += '<line x1="' + px(now.x) + '" y1="' + py(now.y) + '" x2="' + px(to.x) + '" y2="' + py(to.y) + '" stroke="var(--start)" stroke-width="2.2" stroke-dasharray="4 3" marker-end="url(#ah)"/>';
+  if (now) html += '<circle cx="' + px(now.x) + '" cy="' + py(now.y) + '" r="4.5" fill="var(--keep)" stroke="var(--card)" stroke-width="1.5"/>';
+  html += '</svg></div><span class="ax bottom">orientato alle relazioni</span></div>';
+  return html;
+}
+
+function renderThanks(already) {
+  app.removeAttribute("data-round");
+  const p = profile();
+  let html = '<h1 tabindex="-1">' + (already ? "Hai già risposto, grazie!" : "Grazie!") + "</h1>";
+  if (!already) html += '<p class="lead">Le tue risposte sono arrivate. Ecco come vedi Gaia, secondo le tue scelte.</p>';
+  if (p.now) {
+    const st = STYLES[p.now.style];
+    html += '<section class="reveal">' +
+      '<p class="label" style="color:var(--muted)">Lo stile che vedi oggi</p>' +
+      '<p class="stylename">' + st.name + "</p><p>" + st.line + "</p>" +
+      matrix(p) +
+      '<div class="legend"><span><i class="dot" style="background:var(--keep)"></i>oggi, secondo te (Keep)</span>' +
+      (arrowDrawn ? '<span><i class="dot" style="background:var(--start)"></i>la direzione che suggerisci (Start)</span>' : "") + "</div>" +
+      '<div><div class="mlrow"><span>Managing ' + p.now.managing + "%</span><span>Leading " + (100 - p.now.managing) + "%</span></div>" +
+      '<div class="mlbar"><i style="width:' + p.now.managing + '%;background:var(--keep)"></i><i style="width:' + (100 - p.now.managing) + '%;background:var(--start)"></i></div>' +
+      '<p class="muted" style="margin-top:6px">Far funzionare bene le cose oppure far muovere le persone (Kotter): servono entrambi.</p></div>' +
+      '<p class="muted">I quattro stili sono quelli del prof. Mariano Corso: nessuno è il migliore in assoluto, conta quanto è adatto alla situazione.</p>' +
+      "</section>";
+  }
+  html += '<div><blockquote>«Il feedback è la colazione dei campioni.»</blockquote><p class="muted">Ken Blanchard</p></div>';
+  html += '<p class="muted">Puoi chiudere la pagina.</p>';
+  if (already) html += '<button class="linkbtn" id="again" type="button">Il telefono è condiviso? Rispondi di nuovo</button>';
+  app.innerHTML = html;
+  const again = document.getElementById("again");
+  if (again) again.onclick = function () { state = fresh(); state.again = true; save(); render(); };
+  focusHead();
+}
+
+function bindBack() {
+  const b = document.getElementById("back");
+  if (b) b.onclick = function () { if (!busy) go(state.step - 1); };
+}
+function go(i) {
+  state.step = Math.max(0, Math.min(STEPS.length - 1, i));
+  save();
+  render();
+  window.scrollTo(0, 0);
+}
+function focusHead() {
+  const h = app.querySelector("h1, h2");
+  if (h) h.focus({ preventScroll: true });
+}
+
+document.addEventListener("keydown", function (e) {
+  const step = STEPS[state.step];
+  if (state.sent && !state.again) return;
+  if (step.indexOf("q:") === 0 && /^[1-4]$/.test(e.key)) {
+    const q = byId(step.slice(2));
+    pick(q, state.order[q.id][Number(e.key) - 1]);
+  }
+});
+
+/* preview helpers (nothing is saved): index.html#s=5 opens step 5, index.html#t shows the final screen with random answers */
+const m = location.hash.match(/^#s=(\d+)$/);
+if (m) { state = fresh(); state.step = Number(m[1]); }
+if (location.hash === "#t") {
+  state = fresh();
+  QUESTIONS.forEach(function (q) { state.answers[q.id] = "ABCD"[Math.floor(Math.random() * 4)]; });
+  state.step = STEPS.length - 1;
+  renderThanks(false);
+} else {
+  render();
+}
+</script>
+</body>
+</html>
